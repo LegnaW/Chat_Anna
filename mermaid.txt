@@ -1,0 +1,34 @@
+flowchart TD
+    A[新消息到达] --> B{当前处于\n什么模式？}
+    
+    B -->|窥屏模式| C{是否满足\n主动介入条件？}
+    C -->|是| D[进入话题模式\n• 记录话题锚点\n• 重置发言计数=0\n• 更新 last_active_time]
+    C -->|否| Z[继续监听下一条]
+
+    B -->|话题模式| E[调用归属识别器：\n此消息是对我说的吗？]
+    
+    E -->|是| F{LLM 决策：\n需要回复吗？}
+    F -->|是| G[生成回复内容\n• 发言计数+1\n• 更新 last_interaction_time]
+    F -->|否| H[检查是否应退出话题模式]
+
+    E -->|否| H
+
+    H --> I{满足任一退出条件？\n• 话题漂移（语义相似度<0.3）\n• 超时（>5分钟无互动）\n• 发言≥4次\n• 检测到结束语\n• 群体转向新话题}
+    I -->|是| J[（可选）生成礼貌收尾语\n切换回窥屏模式]
+    I -->|否| K[保持话题模式]
+
+    G --> L[发言控制器：\n• 检查全局速率限制\n• 应用冷却期\n• 发送消息到群]
+    
+    D --> M[高敏监听：\n每1-2条消息触发决策]
+    J --> Z
+    K --> Z
+    L --> Z
+    Z --> A
+
+    classDef decision fill:#e6f3ff,stroke:#333;
+    classDef action fill:#e6ffe6,stroke:#333;
+    classDef mode fill:#fff2e6,stroke:#333;
+
+    class B,C,E,F,H,I decision
+    class D,G,J,K,L,M action
+    class D,J mode
